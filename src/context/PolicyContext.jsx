@@ -7,13 +7,62 @@ const PolicyContext = createContext();
 
 export const PolicyProvider = ({ children }) => {
   // Linear Workflow Step State: 1 = Upload, 2 = Understand, 3 = Treatment, 4 = Estimate, 5 = Result
-  const [currentStep, setCurrentStep] = useState(2);
-  const [maxUnlockedStep, setMaxUnlockedStep] = useState(5); // Allows user to jump between steps they've seen
+  // Default landing state is ALWAYS Step 1 — Upload Policy when opening for the first time or if no policy has been uploaded.
+  const [currentStep, setCurrentStep] = useState(() => {
+    const hasUploaded = typeof window !== 'undefined' && sessionStorage.getItem('insuremate_policy_uploaded') === 'true';
+    const savedStep = typeof window !== 'undefined' ? sessionStorage.getItem('insuremate_step') : null;
+    if (hasUploaded && savedStep) {
+      const parsed = parseInt(savedStep, 10);
+      return (parsed >= 1 && parsed <= 5) ? parsed : 1;
+    }
+    return 1;
+  });
 
-  // Active Policy State
-  const [currentPolicy, setCurrentPolicy] = useState(INITIAL_POLICY_DATA);
-  const [isPolicyUploaded, setIsPolicyUploaded] = useState(true); // Pre-loaded with default policy
+  const [maxUnlockedStep, setMaxUnlockedStep] = useState(() => {
+    const hasUploaded = typeof window !== 'undefined' && sessionStorage.getItem('insuremate_policy_uploaded') === 'true';
+    const savedMax = typeof window !== 'undefined' ? sessionStorage.getItem('insuremate_max_step') : null;
+    if (hasUploaded && savedMax) {
+      const parsed = parseInt(savedMax, 10);
+      return (parsed >= 1 && parsed <= 5) ? parsed : 1;
+    }
+    return 1;
+  });
+
+  // Active Policy State (false until a policy is uploaded/processed)
+  const [isPolicyUploaded, setIsPolicyUploaded] = useState(() => {
+    return typeof window !== 'undefined' && sessionStorage.getItem('insuremate_policy_uploaded') === 'true';
+  });
+
+  const [currentPolicy, setCurrentPolicy] = useState(() => {
+    const hasUploaded = typeof window !== 'undefined' && sessionStorage.getItem('insuremate_policy_uploaded') === 'true';
+    if (hasUploaded) {
+      const saved = sessionStorage.getItem('insuremate_policy_data');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch (e) {}
+      }
+    }
+    return INITIAL_POLICY_DATA;
+  });
+
   const [uploadedFile, setUploadedFile] = useState(null);
+
+  // Sync active workflow session with sessionStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      if (isPolicyUploaded) {
+        sessionStorage.setItem('insuremate_policy_uploaded', 'true');
+        sessionStorage.setItem('insuremate_step', currentStep.toString());
+        sessionStorage.setItem('insuremate_max_step', maxUnlockedStep.toString());
+      } else {
+        sessionStorage.removeItem('insuremate_policy_uploaded');
+        sessionStorage.removeItem('insuremate_step');
+        sessionStorage.removeItem('insuremate_max_step');
+        sessionStorage.removeItem('insuremate_policy_data');
+      }
+    }
+  }, [currentStep, maxUnlockedStep, isPolicyUploaded]);
 
   // Upload & OCR Analysis Pipeline Progress State
   const [analysisProgress, setAnalysisProgress] = useState({
@@ -159,6 +208,10 @@ export const PolicyProvider = ({ children }) => {
         setTimeout(() => {
           setCurrentPolicy(UPLOADED_POLICY_MOCK);
           setIsPolicyUploaded(true);
+          if (typeof window !== 'undefined') {
+            sessionStorage.setItem('insuremate_policy_uploaded', 'true');
+            sessionStorage.setItem('insuremate_policy_data', JSON.stringify(UPLOADED_POLICY_MOCK));
+          }
           setAnalysisProgress(prev => ({ ...prev, isAnalyzing: false }));
           setMaxUnlockedStep(prev => Math.max(prev, 2));
 
@@ -278,13 +331,19 @@ export const PolicyProvider = ({ children }) => {
 
   // Reset entire workflow back to step 1
   const resetWorkflow = () => {
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem('insuremate_step');
+      sessionStorage.removeItem('insuremate_max_step');
+      sessionStorage.removeItem('insuremate_policy_uploaded');
+      sessionStorage.removeItem('insuremate_policy_data');
+    }
     setCurrentPolicy(INITIAL_POLICY_DATA);
-    setIsPolicyUploaded(true);
+    setIsPolicyUploaded(false);
     setUploadedFile(null);
     setCurrentStep(1);
-    setMaxUnlockedStep(2);
+    setMaxUnlockedStep(1);
     setPreviousEstimate(null);
-    addToast("Workflow reset to sample policy baseline.", "info");
+    addToast("Workflow reset to Step 1 — Upload Policy.", "info");
   };
 
   return (
