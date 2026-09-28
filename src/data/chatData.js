@@ -11,111 +11,180 @@
 export const SUGGESTED_QUESTIONS = [
   {
     id: "q-knee",
-    text: "Is knee replacement surgery covered?",
-    badge: "Waiting Period Alert"
+    text: "Is knee replacement covered?",
+    badge: "Hospitalization Cover"
   },
   {
     id: "q-room-rent",
-    text: "What is my room rent limit?",
-    badge: "Sub-limit Details"
+    text: "What is my room-rent limit?",
+    badge: "Sub-limit & Penalty"
   },
   {
-    id: "q-maternity",
-    text: "Is maternity covered, and what's the waiting period?",
-    badge: "Capped Cover"
+    id: "q-exclusions",
+    text: "What treatments are excluded?",
+    badge: "Permanent Exclusions"
   },
   {
-    id: "q-copay",
-    text: "What is my co-payment percentage?",
-    badge: "Network vs Non-network"
+    id: "q-waiting",
+    text: "What is my waiting period?",
+    badge: "PED & Procedures"
   },
   {
-    id: "q-ped",
-    text: "Are pre-existing conditions covered yet?",
-    badge: "36-Month Clause"
-  },
-  {
-    id: "q-daycare",
-    text: "What day-care procedures are included?",
-    badge: "540+ Procedures"
+    id: "q-deductible",
+    text: "How much is my deductible?",
+    badge: "Cost Sharing"
   }
 ];
 
 export const KNOWLEDGE_BASE_RESPONSES = {
   "knee": {
-    matchedQuery: "Is knee replacement surgery covered?",
-    answer: "Yes, knee replacement (Unilateral or Bilateral Total Knee Arthroplasty) is covered under your policy, but with two very important conditions: a 24-month specific illness waiting period and a procedure sub-limit.",
+    matchedQuery: "Is knee replacement covered?",
+    answer: "Knee replacement is potentially covered under hospitalization benefits, subject to the applicable waiting period, sub-limits and remaining sum insured.",
     details: [
-      "Sub-limit: Coverage is capped at ₹2,50,000 per joint or the actual cost, whichever is lower.",
-      "Waiting Period Status: Your policy has completed 18 months of the mandatory 24-month specific illness waiting period. This means there are approximately 6 months remaining before non-accidental knee replacement claims become eligible.",
-      "If the knee replacement is necessitated directly by an acute accidental trauma, the waiting period does NOT apply."
+      "Sub-limit: Coverage is capped at ₹2,50,000 per joint or actual approved expenses, whichever is lower.",
+      "Waiting Period: Specific illness waiting period applies (24 months). If the procedure is elective/degenerative, eligibility requires continuous policy active status.",
+      "Cashless Facility: 0% co-payment when performed at any empaneled network healthcare provider."
     ],
     warning: {
       type: "amber",
-      title: "Active Waiting Period: 6 Months Remaining",
-      message: "Elective or degenerative knee replacement surgery is NOT claimable today. It becomes fully eligible after 6 months once your 24-month specific illness waiting period is completed."
+      title: "Waiting-Period & Sub-Limit Verification Required",
+      message: "Non-accidental knee replacement requires verification of the 24-month specific illness waiting clause and the ₹2,50,000 per joint sub-limit cap."
     },
     evidence: {
-      page: 11,
-      section: "Section 4.3(c) & Section 5.2 — Joint Replacement & Specified Disease Waiting Period",
-      excerpt: "Joint replacement surgeries for osteoarthritis or degenerative joint disease are subject to a mandatory 24-month waiting period from inception. Coverage is capped at a maximum of ₹2,50,000 per joint."
+      page: 18,
+      section: "Section 4.2 • Hospitalization Benefits",
+      excerpt: "Hospitalization expenses for Joint Replacement / Knee Surgery are potentially covered under Inpatient Hospitalization Benefits, subject to the applicable waiting period, sub-limits and remaining sum insured."
     },
     confidence: {
-      score: 96,
+      score: 92,
       rating: "Very High Confidence",
-      notes: "Direct match against Section 4.3(c) and Schedule of Specified Procedures."
-    }
+      notes: "Relevant clause matched directly from Section 4.2."
+    },
+    reasoning: [
+      { text: "relevant clause found", status: "success" },
+      { text: "treatment category matched", status: "success" },
+      { text: "waiting-period eligibility requires verification", status: "warning" }
+    ]
   },
 
   "room": {
-    matchedQuery: "What is my room rent limit?",
-    answer: "Your policy room-rent limit is 1% of your Sum Insured per day, which equates to ₹5,000 per day (or a Single Private A/C Room, whichever is lower). ICU charges are capped separately at 2% of Sum Insured (₹10,000 per day).",
+    matchedQuery: "What is my room-rent limit?",
+    answer: "Your policy room-rent limit is 1% of your Sum Insured per day (₹5,000/day) or a Single Private A/C Room, whichever is lower. ICU charges are capped at 2% of Sum Insured (₹10,000/day).",
     details: [
-      "Daily Room Rent Cap: ₹5,000/day (1% of ₹5,00,000 Sum Insured).",
-      "ICU Daily Cap: ₹10,000/day (2% of Sum Insured).",
-      "Proportionate Deduction Risk: If you opt for a room costing more than ₹5,000/day (e.g., Deluxe or Suite at ₹10,000/day), the insurer will deduct ALL associated hospital bill components (surgeon fees, OT charges, nursing charges) proportionately by 50%!"
+      "Daily Room Cap: ₹5,000 per day (1% of ₹5,00,000 Sum Insured).",
+      "ICU Daily Cap: ₹10,000 per day (2% of Sum Insured).",
+      "Proportionate Deduction Clause: If room tariff exceeds ₹5,000/day, all associated hospital charges (OT, doctor, nursing) will be reduced proportionately."
     ],
     warning: {
       type: "amber",
-      title: "Watch Out for Proportionate Deduction Clause",
-      message: "Choosing a room category higher than Single Private A/C / ₹5,000/day will result in a heavy proportionate penalty across your entire hospital bill, greatly increasing your out-of-pocket payment."
+      title: "Proportionate Deduction Risk",
+      message: "Exceeding the eligible room tariff will trigger a proportionate deduction across associated medical bills."
     },
     evidence: {
       page: 8,
-      section: "Section 3.1.2 — Room Rent & Proportionate Deductions Clause",
-      excerpt: "Room, Boarding and Nursing Expenses provided by the Hospital/Nursing Home are capped at 1% of Sum Insured per day. If Insured Person occupies a room with higher tariff than eligible, other medical charges shall be reimbursed in proportion to eligible room rent."
+      section: "Section 3.1.2 • Room Rent & Proportionate Deductions",
+      excerpt: "Room, Boarding and Nursing Expenses provided by the Hospital are capped at 1% of Sum Insured per day. If a higher tariff room is chosen, associated medical expenses are paid in the same proportion."
+    },
+    confidence: {
+      score: 96,
+      rating: "Definitive Match",
+      notes: "Clause 3.1.2 defines the 1% formula and proportionate deduction rule."
+    },
+    reasoning: [
+      { text: "relevant clause found", status: "success" },
+      { text: "sub-limit formula verified", status: "success" },
+      { text: "proportionate penalty clause verified", status: "warning" }
+    ]
+  },
+
+  "exclusions": {
+    matchedQuery: "What treatments are excluded?",
+    answer: "Under your policy, permanent exclusions include cosmetic surgery, non-accidental dental care, experimental or unproven therapies, routine OPD consultations, and non-medical hospital consumables.",
+    details: [
+      "Cosmetic & Aesthetic: Excluded unless required for reconstructive surgery following acute burn or accident.",
+      "Dental Procedures: Excluded unless arising directly from accidental bodily trauma requiring hospital admission.",
+      "IRDAI Non-Payables: PPE kits, sanitizers, administrative fees, and non-medical consumables are excluded from reimbursement."
+    ],
+    warning: {
+      type: "amber",
+      title: "Permanent Exclusions Apply Universally",
+      message: "Excluded treatments cannot be claimed under cashless or reimbursement even if Sum Insured is fully available."
+    },
+    evidence: {
+      page: 26,
+      section: "Section 6.1 • Permanent & General Exclusions",
+      excerpt: "The Company shall not be liable to make any payment for any expenses incurred towards Cosmetic or Plastic Surgery, Non-accidental Dental treatments, Experimental Procedures, and items listed under Annexure I Non-Payable Schedules."
+    },
+    confidence: {
+      score: 95,
+      rating: "High Confidence",
+      notes: "Direct citation from Section 6.1 general exclusion register."
+    },
+    reasoning: [
+      { text: "relevant clause found", status: "success" },
+      { text: "statutory exclusion registry matched", status: "success" },
+      { text: "non-payable schedule confirmed", status: "warning" }
+    ]
+  },
+
+  "waiting": {
+    matchedQuery: "What is my waiting period?",
+    answer: "Your policy enforces three distinct waiting periods: an initial 30-day waiting period, a 24-month waiting period for specific listed illnesses, and a 36-month waiting period for declared pre-existing diseases (PED).",
+    details: [
+      "Initial 30 Days: Completed (all non-accidental illnesses eligible).",
+      "24-Month Specific Illnesses: Applies to joint replacements, cataract, hernia, and calculus diseases (18 months elapsed, 6 months remaining).",
+      "36-Month PED: Applies to declared pre-existing conditions (24 months elapsed, 12 months remaining)."
+    ],
+    warning: {
+      type: "amber",
+      title: "6 Months Remaining for Specific Surgical Procedures",
+      message: "Elective joint replacement or cataract surgery will be admissible once the remaining 6 months of the 24-month waiting period elapse."
+    },
+    evidence: {
+      page: 12,
+      section: "Section 5.2 • Waiting Periods Schedule",
+      excerpt: "Specific procedures listed in Schedule B (including Joint Replacements and Cataract) shall be covered only after twenty-four (24) continuous months of coverage from policy inception."
+    },
+    confidence: {
+      score: 94,
+      rating: "High Accuracy",
+      notes: "Direct match against Section 5.2 Specific Procedures waiting period."
+    },
+    reasoning: [
+      { text: "relevant clause found", status: "success" },
+      { text: "waiting period duration matched", status: "success" },
+      { text: "elapsed months calculated against inception date", status: "warning" }
+    ]
+  },
+
+  "deductible": {
+    matchedQuery: "How much is my deductible?",
+    answer: "Your standard policy has a ₹20,000 deductible per policy year on specific hospitalization claims, after which the policy covers admissible expenses up to the available Sum Insured.",
+    details: [
+      "Base Floater Deductible: ₹20,000 applicable per policy year before claim liability attaches.",
+      "Network Cashless Co-pay: 0% co-payment at 14,200+ network hospitals once deductible is met.",
+      "Non-network Co-pay: 10% co-payment applies if treated at non-network healthcare facilities."
+    ],
+    warning: {
+      type: "blue",
+      title: "Deductible is Paid Out of Pocket First",
+      message: "The first ₹20,000 of admissible hospital bills is settled directly by the policyholder before insurer contribution starts."
+    },
+    evidence: {
+      page: 12,
+      section: "Section 3.1 • Annual Aggregate Deductible Clause",
+      excerpt: "The Insured shall be responsible for paying the specified Deductible amount of ₹20,000 for each policy year prior to any benefits becoming payable under the Hospitalization Benefit."
     },
     confidence: {
       score: 98,
       rating: "Definitive Match",
-      notes: "Clause 3.1.2 explicitly defines the 1% formula and proportionate deduction rule."
-    }
-  },
-
-  "maternity": {
-    matchedQuery: "Is maternity covered, and what's the waiting period?",
-    answer: "Yes, maternity expenses are covered for up to 2 deliveries under this floater policy, subject to a sub-limit. Your 24-month maternity waiting period is now completed, meaning coverage is currently ACTIVE.",
-    details: [
-      "Normal Delivery Sub-limit: ₹40,000 per delivery.",
-      "Caesarean (C-Section) Sub-limit: ₹60,000 per delivery.",
-      "Waiting Period: 24 months from policy start date. Since your policy has run for 24 months, this benefit is now fully unlocked.",
-      "Newborn baby is automatically covered from day 1 up to the expiry of the current policy period within the maternity sub-limit."
-    ],
-    warning: {
-      type: "emerald",
-      title: "Maternity Waiting Period Cleared",
-      message: "You have completed the 24-month waiting duration. Claims for normal or C-section delivery are eligible up to the respective sub-limits."
+      notes: "Clause 3.1 defines the annual deductible requirement."
     },
-    evidence: {
-      page: 14,
-      section: "Section 4.8 & Section 5.4 — Maternity Expenses & Newborn Cover",
-      excerpt: "Hospitalization expenses for delivery (including caesarean section) are covered after 24 continuous months of coverage, limited to ₹40,000 for normal and ₹60,000 for caesarean section, for a maximum of two deliveries during lifetime."
-    },
-    confidence: {
-      score: 95,
-      rating: "Very High Confidence",
-      notes: "Explicitly defined under Section 4.8 with clear sub-limit values."
-    }
+    reasoning: [
+      { text: "relevant clause found", status: "success" },
+      { text: "deductible schedule matched", status: "success" },
+      { text: "cost-sharing order verified", status: "warning" }
+    ]
   },
 
   "copay": {
@@ -132,8 +201,8 @@ export const KNOWLEDGE_BASE_RESPONSES = {
       message: "Over 14,200 hospitals in India offer 0% co-pay cashless claims on this policy. Seeking treatment at an out-of-network facility adds an avoidable 10% out-of-pocket cost."
     },
     evidence: {
-      page: 15,
-      section: "Section 7.2 — Co-Payment Schedule and Network Conditions",
+      page: 21,
+      section: "Section 5.2 — Co-Payment Schedule and Network Conditions",
       excerpt: "A Co-payment of 10% shall be applicable on all admissible claim amounts incurred at Non-Network Hospitals. Zero co-payment applies for cashless hospitalizations at registered network service providers."
     },
     confidence: {
@@ -257,11 +326,17 @@ export function getAssistantResponse(queryText, currentPolicy) {
     matchedKey = "knee";
   } else if (q.includes("room") || q.includes("rent") || q.includes("icu") || q.includes("bed")) {
     matchedKey = "room";
+  } else if (q.includes("exclu") || q.includes("not covered") || q.includes("refused")) {
+    matchedKey = "exclusions";
+  } else if (q.includes("waiting") || q.includes("wait") || q.includes("period") || q.includes("months remaining")) {
+    matchedKey = "waiting";
+  } else if (q.includes("deduct") || q.includes("excess")) {
+    matchedKey = "deductible";
+  } else if (q.includes("co-pay") || q.includes("copay") || q.includes("percentage")) {
+    matchedKey = "copay";
   } else if (q.includes("matern") || q.includes("deliver") || q.includes("baby") || q.includes("pregnan") || q.includes("c-section")) {
     matchedKey = "maternity";
-  } else if (q.includes("co-pay") || q.includes("copay") || q.includes("percentage") || q.includes("deductible")) {
-    matchedKey = "copay";
-  } else if (q.includes("pre-exist") || q.includes("ped") || q.includes("hypertens") || q.includes("diabetes") || q.includes("waiting")) {
+  } else if (q.includes("pre-exist") || q.includes("ped") || q.includes("hypertens") || q.includes("diabetes")) {
     matchedKey = "ped";
   } else if (q.includes("day-care") || q.includes("day care") || q.includes("chemo") || q.includes("dialysis") || q.includes("24 hour")) {
     matchedKey = "daycare";

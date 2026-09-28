@@ -7,8 +7,8 @@ const PolicyContext = createContext();
 
 export const PolicyProvider = ({ children }) => {
   // Linear Workflow Step State: 1 = Upload, 2 = Understand, 3 = Treatment, 4 = Estimate, 5 = Result
-  const [currentStep, setCurrentStep] = useState(1);
-  const [maxUnlockedStep, setMaxUnlockedStep] = useState(2); // Allows user to jump between steps they've seen
+  const [currentStep, setCurrentStep] = useState(2);
+  const [maxUnlockedStep, setMaxUnlockedStep] = useState(5); // Allows user to jump between steps they've seen
 
   // Active Policy State
   const [currentPolicy, setCurrentPolicy] = useState(INITIAL_POLICY_DATA);
@@ -21,12 +21,12 @@ export const PolicyProvider = ({ children }) => {
     currentStep: 0,
     statusText: "",
     steps: [
-      "Reading policy structure & OCR layers...",
-      "Extracting 86 clauses & schedule limits...",
-      "Identifying covered treatments & day-care lists...",
-      "Mapping specific & permanent exclusions...",
-      "Analyzing waiting periods & PED terms...",
-      "Policy analyzed! Knowledge base ready."
+      "Reading policy",
+      "Extracting clauses",
+      "Identifying coverage",
+      "Mapping exclusions",
+      "Analyzing limits",
+      "Building InsureMate intelligence"
     ]
   });
 
@@ -35,21 +35,22 @@ export const PolicyProvider = ({ children }) => {
     {
       id: "msg-welcome-1",
       sender: "assistant",
-      text: "Hello! I am InsureMate. I have read and parsed all 86 clauses from your policy: " + INITIAL_POLICY_DATA.policyName + ". You can ask me any question about your coverage, sub-limits, waiting periods, or exclusions.",
+      text: "Hello! I am InsureMate, your AI-powered insurance intelligence assistant. I have parsed all 86 clauses from your policy: " + INITIAL_POLICY_DATA.policyName + ". You can ask me any question about your coverage, sub-limits, waiting periods, or exclusions.",
       details: [
         "Base Sum Insured: ₹5,00,000 (Available: ₹3,84,500)",
-        "Room Rent Cap: ₹5,000/day (1% of SI) — Proportionate deduction applies",
-        "0% Cashless Co-pay at 14,200+ Network Hospitals"
+        "Deductible: ₹20,000 per policy year (Page 12 • Section 3.1)",
+        "Room Rent Cap: ₹5,000/day (1% of SI) — Single Private A/C Room",
+        "0% Cashless Co-payment at 14,200+ Network Hospitals"
       ],
       evidence: {
-        page: 1,
-        section: "Policy Schedule & Certificate of Insurance",
-        excerpt: "Policy No: POL-IND-2024-884920 issued under Aegis Care Optima Health Shield."
+        page: 18,
+        section: "Section 4.2 • Hospitalization Benefits",
+        excerpt: "Hospitalization expenses for Joint Replacement / Knee Surgery are potentially covered under Inpatient Hospitalization Benefits, subject to the applicable waiting period, sub-limits and remaining sum insured."
       },
       confidence: {
-        score: 98,
+        score: 92,
         rating: "Document Grounded",
-        notes: "Verified against policy schedule page 1."
+        notes: "Verified against policy schedule & Section 4.2."
       },
       warning: null,
       timestamp: "Just now",
@@ -58,23 +59,25 @@ export const PolicyProvider = ({ children }) => {
   ]);
   const [isTyping, setIsTyping] = useState(false);
 
-  // Step 3 Minimal Treatment Scenario Input Form State
+  // Step 3 Minimal Treatment Scenario Input Form State (Strictly matching prompt defaults)
   const [treatmentScenario, setTreatmentScenario] = useState({
     procedureId: "knee-replacement",
-    treatmentName: "Total Knee Replacement (Unilateral)",
-    patientAge: 54,
-    expectedCost: 285000,
+    treatmentName: "Knee Replacement",
+    customTreatment: "",
+    patientAge: 55,
+    expectedCost: 200000,
     hasPreExisting: false,
     hospital: "Sahyadri Super Speciality Hospital, Pune",
-    additionalInfo: "Doctor recommended surgery within 60 days. Inquiring for cashless pre-auth."
+    additionalInfo: ""
   });
 
   // Step 4 & 5 Calculation Results
   const initialCalc = calculateTreatmentEstimate({
     procedureId: "knee-replacement",
-    hospitalName: "Sahyadri Super Speciality Hospital",
+    hospitalName: "Sahyadri Super Speciality Hospital, Pune",
     cityName: "Pune",
-    patientAge: 54,
+    patientAge: 55,
+    expectedCost: 200000,
     hasPreExisting: false,
     roomCategory: "Single Private A/C",
     policy: INITIAL_POLICY_DATA
@@ -83,6 +86,9 @@ export const PolicyProvider = ({ children }) => {
   const [currentEstimate, setCurrentEstimate] = useState(initialCalc);
   const [previousEstimate, setPreviousEstimate] = useState(null);
   const [recalculationReason, setRecalculationReason] = useState("");
+
+  // AI Assistant Navigation Return Step (Page 3, 4, or 5)
+  const [aiAssistantReturnStep, setAiAssistantReturnStep] = useState(3);
 
   // Toasts
   const [toasts, setToasts] = useState([]);
@@ -100,13 +106,15 @@ export const PolicyProvider = ({ children }) => {
   };
 
   // Step Navigation Control
-  const goToStep = (stepNumber) => {
+  const goToStep = (stepNumber, shouldScroll = true) => {
     if (stepNumber >= 1 && stepNumber <= 5) {
       setCurrentStep(stepNumber);
       if (stepNumber > maxUnlockedStep) {
         setMaxUnlockedStep(stepNumber);
       }
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      if (shouldScroll) {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
     }
   };
 
@@ -229,9 +237,11 @@ export const PolicyProvider = ({ children }) => {
     setTreatmentScenario(scenarioData);
     const newEst = calculateTreatmentEstimate({
       procedureId: scenarioData.procedureId,
+      treatmentName: scenarioData.treatmentName,
       hospitalName: scenarioData.hospital,
       cityName: "Pune",
       patientAge: scenarioData.patientAge,
+      expectedCost: scenarioData.expectedCost,
       hasPreExisting: scenarioData.hasPreExisting,
       roomCategory: "Single Private A/C",
       policy: currentPolicy
@@ -248,18 +258,21 @@ export const PolicyProvider = ({ children }) => {
   const runRecalculation = (updatedData, reasonText) => {
     const updated = calculateTreatmentEstimate({
       procedureId: updatedData.procedureId || treatmentScenario.procedureId,
+      treatmentName: updatedData.treatmentName || treatmentScenario.treatmentName,
       hospitalName: updatedData.hospital || treatmentScenario.hospital,
       cityName: "Pune",
       patientAge: updatedData.patientAge || treatmentScenario.patientAge,
+      expectedCost: updatedData.expectedCost || treatmentScenario.expectedCost,
       hasPreExisting: updatedData.hasPreExisting !== undefined ? updatedData.hasPreExisting : treatmentScenario.hasPreExisting,
       roomCategory: updatedData.roomCategory || "Twin Sharing A/C",
       isNetworkOverride: updatedData.isNetworkOverride !== undefined ? updatedData.isNetworkOverride : true,
+      isRecalculated: updatedData.isRecalculated !== undefined ? updatedData.isRecalculated : true,
       policy: currentPolicy
     });
 
     setPreviousEstimate(currentEstimate);
     setCurrentEstimate(updated);
-    setRecalculationReason(reasonText || "Updated patient age, room tariff, or network hospital parameters.");
+    setRecalculationReason(reasonText || "Updated patient age, room tariff, or hospital parameters.");
     addToast("Treatment estimate recalculated!", "success");
   };
 
@@ -298,6 +311,8 @@ export const PolicyProvider = ({ children }) => {
         recalculationReason,
         runRecalculation,
         resetWorkflow,
+        aiAssistantReturnStep,
+        setAiAssistantReturnStep,
         toasts,
         addToast,
         removeToast

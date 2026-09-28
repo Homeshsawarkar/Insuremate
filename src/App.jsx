@@ -6,11 +6,11 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* The entire product is the 5-step continuous linear workflow */}
+        {/* The entire product is the continuous linear workflow */}
         <Route path="/" element={<InsureMateWorkflow />} />
         <Route path="/workflow" element={<InsureMateWorkflow />} />
         
-        {/* Redirect all legacy paths directly to the master workflow */}
+        {/* Redirect any other path directly to the master workflow */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
