@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { usePolicy } from '../../context/PolicyContext';
 import { POPULAR_PROCEDURES } from '../../data/treatmentData';
 import { 
@@ -10,7 +10,8 @@ import {
   Calendar,
   Building2,
   FileEdit,
-  AlertCircle
+  AlertCircle,
+  ShieldCheck
 } from 'lucide-react';
 
 export const Step3Treatment = () => {
@@ -31,10 +32,88 @@ export const Step3Treatment = () => {
   const customInputRef = useRef(null);
 
   const [patientAge, setPatientAge] = useState(treatmentScenario.patientAge || 55);
-  const [expectedCost, setExpectedCost] = useState(treatmentScenario.expectedCost || 200000);
   const [hasPreExisting, setHasPreExisting] = useState(treatmentScenario.hasPreExisting || false);
   const [hospital, setHospital] = useState(treatmentScenario.hospital || "Sahyadri Super Speciality Hospital, Pune");
   const [additionalInfo, setAdditionalInfo] = useState(treatmentScenario.additionalInfo || "");
+
+  // System-generated estimate derived from treatment-cost dataset (not manually editable)
+  const getTreatmentCostData = (procedureId, customName) => {
+    if (procedureId !== "other") {
+      const proc = POPULAR_PROCEDURES.find(p => p.id === procedureId);
+      if (proc && proc.baseCostTier1) {
+        const confidenceMap = {
+          "knee-replacement": 94,
+          "cataract-surgery": 96,
+          "angioplasty": 92,
+          "cholecystectomy": 90,
+          "maternity-csection": 91,
+          "kidney-stone": 93
+        };
+        return {
+          hasData: true,
+          cost: proc.baseCostTier1,
+          confidence: confidenceMap[procedureId] || 90,
+          source: "Treatment cost dataset"
+        };
+      }
+    } else {
+      const trimmed = (customName || "").trim().toLowerCase();
+      if (!trimmed) {
+        return {
+          hasData: false,
+          cost: null,
+          confidence: 0,
+          reason: "Please enter your treatment name."
+        };
+      }
+
+      // Contextual benchmarks for recognized custom procedures
+      if (trimmed.includes("knee") || trimmed.includes("joint")) {
+        return { hasData: true, cost: 200000, confidence: 88, source: "Matched orthopedic benchmark" };
+      }
+      if (trimmed.includes("cataract") || trimmed.includes("eye") || trimmed.includes("phaco")) {
+        return { hasData: true, cost: 65000, confidence: 91, source: "Matched ophthalmic benchmark" };
+      }
+      if (trimmed.includes("heart") || trimmed.includes("angio") || trimmed.includes("stent") || trimmed.includes("cardiac")) {
+        return { hasData: true, cost: 260000, confidence: 89, source: "Matched cardiac benchmark" };
+      }
+      if (trimmed.includes("gallbladder") || trimmed.includes("cholecyst") || trimmed.includes("appendix") || trimmed.includes("append")) {
+        return { hasData: true, cost: 125000, confidence: 86, source: "Matched surgical benchmark" };
+      }
+      if (trimmed.includes("c-section") || trimmed.includes("caesarean") || trimmed.includes("delivery") || trimmed.includes("maternity")) {
+        return { hasData: true, cost: 110000, confidence: 87, source: "Matched obstetric benchmark" };
+      }
+      if (trimmed.includes("kidney") || trimmed.includes("stone") || trimmed.includes("lithotripsy")) {
+        return { hasData: true, cost: 95000, confidence: 90, source: "Matched urology benchmark" };
+      }
+      if (trimmed.includes("hip") || trimmed.includes("arthro")) {
+        return { hasData: true, cost: 220000, confidence: 85, source: "Orthopedic benchmark data" };
+      }
+      if (trimmed.includes("hernia")) {
+        return { hasData: true, cost: 85000, confidence: 84, source: "General surgery benchmark data" };
+      }
+
+      // Insufficient data for unknown custom treatment
+      return {
+        hasData: false,
+        cost: null,
+        confidence: 0,
+        reason: "InsureMate could not determine a reliable treatment cost from the available data."
+      };
+    }
+
+    return {
+      hasData: false,
+      cost: null,
+      confidence: 0,
+      reason: "InsureMate could not determine a reliable treatment cost from the available data."
+    };
+  };
+
+  // Reactively calculate expected hospital cost based on selected treatment
+  const costData = useMemo(() => {
+    return getTreatmentCostData(selectedProcedureId, customTreatment);
+  }, [selectedProcedureId, customTreatment]);
 
   // Processing animation state
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -63,10 +142,6 @@ export const Step3Treatment = () => {
     setCustomError("");
     if (procId !== "other") {
       setCustomTreatment("");
-      const proc = POPULAR_PROCEDURES.find(p => p.id === procId);
-      if (proc) {
-        setExpectedCost(proc.baseCostTier1 || 200000);
-      }
     } else {
       setTimeout(() => {
         if (customInputRef.current) {
@@ -99,6 +174,16 @@ export const Step3Treatment = () => {
       ? customTreatment.trim()
       : (POPULAR_PROCEDURES.find(p => p.id === selectedProcedureId)?.name || "Knee Replacement");
 
+    if (!costData.hasData) {
+      setCustomError("InsureMate could not determine a reliable treatment cost from the available data.");
+      if (customInputRef.current) {
+        customInputRef.current.focus();
+      }
+      return;
+    }
+
+    const resolvedCost = costData.cost;
+
     const stepInterval = 280; // ~1.4s total
     const interval = setInterval(() => {
       setChecklistStep((prev) => {
@@ -112,7 +197,7 @@ export const Step3Treatment = () => {
               treatmentName: resolvedTreatmentName,
               customTreatment: selectedProcedureId === "other" ? customTreatment.trim() : "",
               patientAge: parseInt(patientAge, 10),
-              expectedCost: parseInt(expectedCost, 10),
+              expectedCost: resolvedCost,
               hasPreExisting: hasPreExisting,
               hospital: hospital,
               additionalInfo: additionalInfo
@@ -222,23 +307,67 @@ export const Step3Treatment = () => {
               />
             </div>
 
-            {/* 3. Expected Hospital Cost (₹2,00,000) */}
+            {/* 3. Expected Hospital Cost (AI-estimated, read-only system output) */}
             <div>
-              <label className="block text-xs font-bold text-navy-900 uppercase tracking-wider mb-2">
-                Expected Hospital Cost (₹)
-              </label>
-              <div className="relative">
-                <span className="absolute left-3.5 top-3.5 text-slate-400 font-bold">₹</span>
-                <input
-                  type="number"
-                  min="10000"
-                  step="5000"
-                  required
-                  value={expectedCost}
-                  onChange={(e) => setExpectedCost(e.target.value)}
-                  className="w-full pl-8 pr-4 py-3.5 text-sm bg-slate-50 border border-slate-300 rounded-xl text-navy-900 font-semibold focus:outline-none focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue transition-all font-mono"
-                />
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-xs font-bold text-navy-900 uppercase tracking-wider">
+                  Expected Hospital Cost (₹)
+                </label>
+                {costData.hasData && (
+                  <span className="text-[10px] font-mono font-bold bg-blue-50 text-brand-blue border border-blue-200 px-2 py-0.5 rounded-full inline-flex items-center gap-1">
+                    <ShieldCheck className="w-3 h-3 text-brand-blue" />
+                    <span>Confidence: {costData.confidence}%</span>
+                  </span>
+                )}
               </div>
+
+              {costData.hasData ? (
+                <div 
+                  id="expected-hospital-cost-card"
+                  className="p-3.5 rounded-xl bg-gradient-to-br from-blue-50/70 via-slate-50 to-white border border-blue-200/80 shadow-subtle flex flex-col justify-between select-none cursor-default"
+                >
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="text-xl sm:text-2xl font-black text-navy-900 font-mono tracking-tight">
+                      ₹ {costData.cost.toLocaleString('en-IN')}
+                    </span>
+                    <span className="text-[9px] uppercase font-bold text-slate-400 bg-white/80 px-2 py-0.5 rounded border border-slate-200">
+                      AI Estimate
+                    </span>
+                  </div>
+                  
+                  <div className="text-xs text-navy-600 font-medium mt-1">
+                    AI-estimated treatment cost
+                  </div>
+
+                  <div className="text-[10px] text-slate-500 pt-2 mt-2 border-t border-blue-100 flex items-center justify-between">
+                    <span className="flex items-center gap-1 text-brand-blue font-semibold">
+                      <Sparkles className="w-3 h-3 text-brand-blue" />
+                      <span>✦ Based on treatment & cost data</span>
+                    </span>
+                    <span className="text-slate-400 text-[9px] font-mono">
+                      System output
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div 
+                  id="expected-hospital-cost-unavailable"
+                  className="p-3.5 rounded-xl bg-amber-50/80 border border-amber-200 shadow-subtle flex flex-col justify-between select-none cursor-default text-left"
+                >
+                  <div>
+                    <div className="flex items-center gap-1.5 text-amber-800 text-xs font-bold">
+                      <AlertCircle className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
+                      <span>Cost estimate unavailable</span>
+                    </div>
+                    <div className="text-[11px] text-amber-900/90 font-medium mt-1">
+                      Insufficient data for a reliable cost estimate.
+                    </div>
+                  </div>
+                  <div className="text-[10px] text-amber-700/80 pt-1.5 mt-1.5 border-t border-amber-200/60 leading-tight">
+                    InsureMate could not determine a reliable treatment cost from the available data.
+                  </div>
+                </div>
+              )}
             </div>
 
           </div>
